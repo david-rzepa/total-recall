@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import qs.Ui
 import qs.Commons
 import "RecoveryModel.js" as RecoveryModel
@@ -165,6 +166,9 @@ BarWidget {
     owner: root
     open: root.popupOpen
     focusTarget: column
+    // Navigation deliberately focuses application windows. Retain layer-shell
+    // keyboard ownership until dismissal; Qt item focus alone is insufficient.
+    WlrLayershell.keyboardFocus: root.popupOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     contentWidth: popup.fittedContentWidth(Style.space(780))
     contentHeight: popup.fittedContentHeight(column.implicitHeight)
     Column {
