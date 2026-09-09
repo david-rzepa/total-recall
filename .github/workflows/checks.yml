@@ -1,17 +1,29 @@
 name: Checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - LICENSE
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - LICENSE
 permissions:
   contents: read
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: python3 -m unittest discover -s tests -v
-      - run: node tests/test_ui_model.cjs
+          persist-credentials: false
+      # Stdlib Python and Node built-ins only; no installs, caches, or matrix.
+      - name: Check backend and UI model
+        run: |
+          python3 -m unittest discover -s tests -q
+          node tests/test_ui_model.cjs
