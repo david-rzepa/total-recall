@@ -31,27 +31,30 @@ BarWidget {
   onModelChanged: Qt.callLater(syncSelection)
   function syncSelection() {
     var index = model.rows.findIndex(r => r.uid === selectedKey)
-    if (index < 0) index = model.rows.findIndex(r => r.address === state.active)
-    if (index < 0) index = 0
-    selectIndex(index, false)
+    if (index < 0) selectedKey = ""
+    table.currentIndex = index
   }
   function selectIndex(index, scroll) {
-    if (!model.rows.length) { selectedKey = ""; return }
+    if (!model.rows.length) { selectedKey = ""; table.currentIndex = -1; return }
     index = Math.max(0, Math.min(model.rows.length - 1, index))
     selectedKey = model.rows[index].uid
     table.currentIndex = index
     if (scroll !== false) table.positionViewAtIndex(index, ListView.Contain)
+    pendingFocus = selected && selected.address ? selected : null
+    focusSelection()
   }
   function moveSelection(delta) {
-    selectIndex(Math.max(0, model.rows.findIndex(r => r.uid === selectedKey)) + delta)
+    var index = model.rows.findIndex(r => r.uid === selectedKey)
+    selectIndex(index < 0 ? (delta < 0 ? model.rows.length - 1 : 0) : index + delta)
   }
-  function jump(row) {
-    if (row && row.closed) { toggleRow(row); return }
-    if (!row || !row.address || focusProcess.running) return
+  property var pendingFocus: null
+  function focusSelection() {
+    if (!popupOpen || !pendingFocus || focusProcess.running) return
+    var row = pendingFocus
+    pendingFocus = null
     failure = ""
     focusProcess.command = ["python3", "-B", script, "focus", "--address", row.address, "--key", row.key]
-    close()
-    Qt.callLater(function() { focusProcess.running = true })
+    focusProcess.running = true
   }
   Process {
     id: focusProcess
@@ -61,7 +64,10 @@ BarWidget {
         try { root.failure = JSON.parse(text).error || text } catch (e) { root.failure = text }
       }
     }
-    onExited: function(code) { if (code !== 0) root.open() }
+    onExited: function(code) {
+      if (root.popupOpen) column.forceActiveFocus()
+      Qt.callLater(root.focusSelection)
+    }
   }
   property real now: Date.now() / 1000
   readonly property var model: RecoveryModel.build(state)
@@ -70,8 +76,8 @@ BarWidget {
   readonly property color statusColor: hasError ? "#ff5555" : model.dirty ? "#f1c40f" : "#ffffff"
   readonly property string statusText: hasError ? "Recovery error" : model.dirty ? "New windows to decide" : "Total Recall · all windows decided"
   readonly property string script: Qt.resolvedUrl("persist.py").toString().replace(/^file:\/\//, "")
-  function close() { popupOpen = false }
-  function open() { syncSelection(); if (appLibrary) appLibrary.refreshIcons(); popupOpen = true }
+  function close() { pendingFocus = null; popupOpen = false }
+  function open() { selectedKey = ""; table.currentIndex = -1; pendingFocus = null; if (appLibrary) appLibrary.refreshIcons(); popupOpen = true }
   function togglePanel() { if (popupOpen) close(); else open() }
   function skipRow(row) {
     if (!row || stale || operation.running) return
@@ -177,7 +183,7 @@ BarWidget {
         else if (event.key === Qt.Key_End) root.selectIndex(root.model.rows.length - 1)
         else if (event.key === Qt.Key_PageDown) root.moveSelection(8)
         else if (event.key === Qt.Key_PageUp) root.moveSelection(-8)
-        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.jump(root.selected)
+        else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && root.selected && root.selected.closed) root.toggleRow(root.selected)
         else if (event.key === Qt.Key_Space || event.text === "s") root.toggleRow(root.selected)
         else if (event.text === "n" || (event.key === Qt.Key_Delete && root.selected && root.selected.closed)) root.skipRow(root.selected)
         else event.accepted = false
@@ -245,7 +251,6 @@ BarWidget {
           MouseArea {
             anchors.fill: parent
             onClicked: { root.selectIndex(entry.index); column.forceActiveFocus() }
-            onDoubleClicked: root.jump(entry.modelData)
           }
           Row {
             anchors.fill: parent
@@ -338,7 +343,7 @@ BarWidget {
       Text {
         width: parent.width
         textFormat: Text.PlainText
-        text: root.selected ? root.selected.detail : "No windows."
+        text: root.selected ? root.selected.detail : root.model.rows.length ? "Select a window to inspect it." : "No windows."
         color: Qt.alpha(root.bar.foreground, 0.75)
         wrapMode: Text.Wrap
         maximumLineCount: 4
@@ -348,7 +353,7 @@ BarWidget {
       }
       Text {
         width: parent.width
-        text: root.selected && root.selected.closed ? "j/k ↑/↓ Tab select · Enter/Space restore · Delete/n delete entry · Esc close" : "j/k ↑/↓ Tab select · Enter jump · Space " + (root.selected && root.selected.needsAdapter ? "create adapter" : root.selected && root.selected.saved ? "unpersist" : "persist") + " · n skip · Esc close"
+        text: root.selected && root.selected.closed ? "j/k ↑/↓ Tab select · Enter/Space restore · Delete/n delete entry · Esc close" : "j/k ↑/↓ Tab select & focus · Space " + (root.selected && root.selected.needsAdapter ? "create adapter" : root.selected && root.selected.saved ? "unpersist" : "persist") + " · n skip · Esc close"
         wrapMode: Text.Wrap
         color: root.bar.foreground
         font.family: root.mono

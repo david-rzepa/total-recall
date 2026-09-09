@@ -59,15 +59,16 @@ is **Super+Ctrl+1** when this widget is first in the right section.
 
 | Key | Action |
 | --- | --- |
-| Up/Down, j/k, Tab/Shift+Tab | Select a window |
+| Up/Down, j/k, Tab/Shift+Tab | Select and immediately focus a window |
 | Space or s | Persist, unpersist, or create a missing adapter |
 | n | Skip this window and remove its registration |
-| Enter | Jump to the selected live window |
+| Enter | Restore the selected closed window |
 | Home/End, PageUp/PageDown | Navigate the table |
 | Esc or q | Close |
 
 Click the persist marker to perform its action, right-click to skip, or
-double-click a row to jump. Markers are **✓** persisted, **–** not persisted,
+click a row to select and focus it. The popup opens with no selection and retains
+keyboard control while you inspect windows. Markers are **✓** persisted, **–** not persisted,
 yellow **!** undecided, red **?** closed but persisted, and red **×** error.
 For a closed entry, Enter/Space or clicking its marker restores it; Delete/n or
 right-clicking the marker deletes its saved entry.
