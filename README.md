@@ -68,7 +68,7 @@ is **Super+Ctrl+1** when this widget is first in the right section.
 | Esc or q | Close |
 
 Click the persist marker to perform its action, right-click to skip, or
-click a row to select and focus it. The popup opens with no selection and retains
+click a row to select and focus it. The popup opens with the currently focused window selected and retains
 keyboard control while you inspect windows. Markers are **✓** persisted, **–** not persisted,
 yellow **!** undecided, red **?** closed but persisted, and red **×** error.
 For a closed entry, Enter/Space or clicking its marker restores it; Delete/n or

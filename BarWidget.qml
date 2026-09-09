@@ -36,6 +36,7 @@ BarWidget {
     table.currentIndex = index
   }
   function selectIndex(index, scroll) {
+    openingSelection = false
     if (!model.rows.length) { selectedKey = ""; table.currentIndex = -1; return }
     index = Math.max(0, Math.min(model.rows.length - 1, index))
     selectedKey = model.rows[index].uid
@@ -93,8 +94,33 @@ BarWidget {
   readonly property color statusColor: hasError ? "#ff5555" : model.dirty ? "#f1c40f" : "#ffffff"
   readonly property string statusText: hasError ? "Recovery error" : model.dirty ? "New windows to decide" : "Total Recall · all windows decided"
   readonly property string script: Qt.resolvedUrl("persist.py").toString().replace(/^file:\/\//, "")
-  function close() { pendingFocus = null; focusDispatch.stop(); yieldingKeyboard = false; popupOpen = false }
-  function open() { selectedKey = ""; table.currentIndex = -1; pendingFocus = null; if (appLibrary) appLibrary.refreshIcons(); popupOpen = true }
+  function close() { openingSelection = false; pendingFocus = null; focusDispatch.stop(); yieldingKeyboard = false; popupOpen = false }
+  property bool openingSelection: false
+  function selectActive(address) {
+    var index = model.rows.findIndex(r => r.address === address)
+    selectedKey = index < 0 ? "" : model.rows[index].uid
+    table.currentIndex = index
+    if (index >= 0) table.positionViewAtIndex(index, ListView.Contain)
+  }
+  function open() {
+    pendingFocus = null
+    openingSelection = true
+    selectActive(state.active)
+    if (!openingWindow.running) openingWindow.running = true
+    if (appLibrary) appLibrary.refreshIcons()
+    popupOpen = true
+  }
+  Process {
+    id: openingWindow
+    command: ["hyprctl", "activewindow", "-j"]
+    stdout: StdioCollector {
+      onStreamFinished: {
+        if (!root.popupOpen || !root.openingSelection) return
+        try { root.selectActive(JSON.parse(text).address || "") } catch (e) {}
+        root.openingSelection = false
+      }
+    }
+  }
   function togglePanel() { if (popupOpen) close(); else open() }
   function skipRow(row) {
     if (!row || stale || operation.running) return
