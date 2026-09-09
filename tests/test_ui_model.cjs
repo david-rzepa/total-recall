@@ -64,6 +64,6 @@ model=ctx.build({windows:[
  placed('tab1',0,0,{id:'g',index:0})
 ]});
 assert.deepEqual(Array.from(model.rows,r=>r.key), ['tab1','tab2','top-right','middle','bottom-left']);
-model=ctx.build({windows:[placed('live',800,0)],saved:[{...saved,placement:{workspace:'1',at:[0,500]}}]});
+model=ctx.build({windows:[placed('live',800,0)],saved:[{...saved,recipe:{...recipe,identity:'closed-app'},placement:{workspace:'1',at:[0,500]}}]});
 assert.equal(model.rows[0].key,'live');
 assert.equal(model.rows[1].closed,true);
