@@ -78,7 +78,11 @@ BarWidget {
     }
     onExited: function(code) {
       root.yieldingKeyboard = false
-      if (root.popupOpen) Qt.callLater(function() { column.forceActiveFocus() })
+      if (root.popupOpen) {
+        popup.focusPrimed = false
+        popup.beginFocusPrime()
+        Qt.callLater(function() { column.forceActiveFocus() })
+      }
       Qt.callLater(root.focusSelection)
     }
   }
@@ -181,7 +185,8 @@ BarWidget {
     // Briefly yield keyboard ownership so the compositor can activate the
     // selected client, then reacquire it for continued popup navigation.
     WlrLayershell.keyboardFocus: !root.popupOpen || root.yieldingKeyboard
-      ? WlrKeyboardFocus.None : WlrKeyboardFocus.Exclusive
+      ? WlrKeyboardFocus.None
+      : (popup.focusPrimed ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive)
     contentWidth: popup.fittedContentWidth(Style.space(780))
     contentHeight: popup.fittedContentHeight(column.implicitHeight)
     Column {
