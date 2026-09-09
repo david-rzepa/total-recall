@@ -49,13 +49,24 @@ BarWidget {
     selectIndex(index < 0 ? (delta < 0 ? model.rows.length - 1 : 0) : index + delta)
   }
   property var pendingFocus: null
+  property bool yieldingKeyboard: false
   function focusSelection() {
-    if (!popupOpen || !pendingFocus || focusProcess.running) return
+    if (!popupOpen || !pendingFocus || focusProcess.running || focusDispatch.running) return
     var row = pendingFocus
     pendingFocus = null
     failure = ""
     focusProcess.command = ["python3", "-B", script, "focus", "--address", row.address, "--key", row.key]
-    focusProcess.running = true
+    yieldingKeyboard = true
+    focusDispatch.start()
+  }
+  Timer {
+    id: focusDispatch
+    // Commit the layer's keyboard release before asking Hyprland to focus a client.
+    interval: 25
+    onTriggered: {
+      if (root.popupOpen) focusProcess.running = true
+      else root.yieldingKeyboard = false
+    }
   }
   Process {
     id: focusProcess
@@ -66,7 +77,8 @@ BarWidget {
       }
     }
     onExited: function(code) {
-      if (root.popupOpen) column.forceActiveFocus()
+      root.yieldingKeyboard = false
+      if (root.popupOpen) Qt.callLater(function() { column.forceActiveFocus() })
       Qt.callLater(root.focusSelection)
     }
   }
@@ -77,7 +89,7 @@ BarWidget {
   readonly property color statusColor: hasError ? "#ff5555" : model.dirty ? "#f1c40f" : "#ffffff"
   readonly property string statusText: hasError ? "Recovery error" : model.dirty ? "New windows to decide" : "Total Recall · all windows decided"
   readonly property string script: Qt.resolvedUrl("persist.py").toString().replace(/^file:\/\//, "")
-  function close() { pendingFocus = null; popupOpen = false }
+  function close() { pendingFocus = null; focusDispatch.stop(); yieldingKeyboard = false; popupOpen = false }
   function open() { selectedKey = ""; table.currentIndex = -1; pendingFocus = null; if (appLibrary) appLibrary.refreshIcons(); popupOpen = true }
   function togglePanel() { if (popupOpen) close(); else open() }
   function skipRow(row) {
@@ -166,9 +178,10 @@ BarWidget {
     owner: root
     open: root.popupOpen
     focusTarget: column
-    // Navigation deliberately focuses application windows. Retain layer-shell
-    // keyboard ownership until dismissal; Qt item focus alone is insufficient.
-    WlrLayershell.keyboardFocus: root.popupOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // Briefly yield keyboard ownership so the compositor can activate the
+    // selected client, then reacquire it for continued popup navigation.
+    WlrLayershell.keyboardFocus: !root.popupOpen || root.yieldingKeyboard
+      ? WlrKeyboardFocus.None : WlrKeyboardFocus.Exclusive
     contentWidth: popup.fittedContentWidth(Style.space(780))
     contentHeight: popup.fittedContentHeight(column.implicitHeight)
     Column {
