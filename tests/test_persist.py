@@ -12,6 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import persist
 
 class RecoveryTests(unittest.TestCase):
+    def test_unsupported_gui_offers_adapter_but_capture_errors_do_not(self):
+        self.assertTrue(persist.needs_adapter({'recipe':None, 'error':None}))
+        self.assertFalse(persist.needs_adapter({'recipe':None, 'error':'Capture failed'}))
+        self.assertFalse(persist.needs_adapter({'recipe':{'adapter':'desktop-app'}, 'error':None}))
+
     def test_manual_restore_focuses_new_and_reused_windows(self):
         for outcome in ('restored', 'already-running'):
             result = {'result': outcome, 'address': '0x1'}

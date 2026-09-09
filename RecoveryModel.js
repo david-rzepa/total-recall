@@ -8,13 +8,13 @@ function build(state) {
       record = saved.find(function(r) { return !used[r.id] && r.recipe.identity === w.recipe.identity })
     if (record) used[record.id] = true
     var changed = !!record && (record.blocked || w.status === 'changed')
-    var needsAdapter = !!(w.recipe && w.recipe.needs_adapter)
-    var undecided = !!w.recipe && !w.error && (!record || needsAdapter) && !(state.skipped || {})[w.key]
+    var needsAdapter = !w.error && (!w.recipe || !!w.recipe.needs_adapter)
+    var undecided = (!!w.recipe || needsAdapter) && !w.error && (!record || needsAdapter) && !(state.skipped || {})[w.key]
     rows.push({workspace: String(w.placement.workspace), at: w.placement.at || null, group: w.placement.group || null, address: w.address, key: w.key, uid: w.key,
       id: record ? record.id : '', saved: !!record && !needsAdapter, needsAdapter: needsAdapter, app: w.app || '', desktopId: w.recipe && w.recipe.state ? w.recipe.state.desktop_id || '' : '',
       eligible: !!w.recipe && !w.error && !needsAdapter, undecided: undecided, dirty: undecided,
       error: w.error || (changed ? 'Current recovery state is unavailable.' : ''), label: w.recipe ? w.recipe.label : w.app,
-      title: w.title, detail: w.error || (w.recipe ? w.recipe.detail : 'Recovery is not supported for this window.'),
+      title: w.title, detail: w.error || (w.recipe ? w.recipe.detail : 'No adapter · Create one to enable recovery.'),
       status: w.error ? 'Error' : changed ? 'Changed' : record ? 'Saved' : w.recipe ? 'Not saved' : 'Unsupported'})
   })
   saved.forEach(function(r) {

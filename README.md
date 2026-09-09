@@ -7,7 +7,7 @@ windows you want to keep, captures their recoverable state as you work, and
 reopens them after your next login.
 
 Launch apps normally. Decide what to persist from one compact table. Supported
-processes use recovery adapters; an unknown terminal command offers **Create
+processes use recovery adapters; an unsupported app or terminal command offers **Create
 adapter** using your default OS agent.
 
 ## Features
@@ -103,7 +103,7 @@ o.bind("SUPER + ALT + P", "Total Recall", "total-recall persist")
 | Hunk | Live diff revisions and known PR context | Cursor, notes, selection, and Herdr bridge are not restored |
 | gh-dash | Dashboard in the saved directory | Filters and selection reset |
 | Idle Foot shell | Current account default shell and directory | Typed input is not restored |
-| Unknown terminal command | Create adapter action | No automatic command replay |
+| Unsupported app or terminal command | Create adapter action | No automatic command replay |
 
 Total Recall restores applications through adapters, not memory checkpoints.
 It does not replay arbitrary jobs such as file copies. Existing matching

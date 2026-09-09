@@ -224,10 +224,13 @@ def enroll(adapters, address=None):
         write(STATE / 'saved.json', db)
     return rid
 
+def needs_adapter(window):
+    return bool(window) and not window.get('error') and (not window.get('recipe') or bool(window['recipe'].get('needs_adapter')))
+
 def create_adapter(adapters, address, key):
     """Start an explicitly requested draft, without enrolling or replaying the process."""
     window = next((w for w in discover(adapters) if w['address'] == address and w['key'] == key), None)
-    if not window or not (window.get('recipe') or {}).get('needs_adapter'):
+    if not needs_adapter(window):
         raise ValueError('Window changed or already has an adapter. Select it again.')
     token = hashlib.sha256(key.encode()).hexdigest()[:16]
     appid = 'omarchy-persist-adapter-' + token
@@ -594,7 +597,7 @@ def main():
     elif args.action == 'persist':
         address = args.address or hypr('activewindow').get('address')
         window = next((w for w in discover(adapters) if w['address'] == address), None)
-        if window and window.get('recipe') and window['recipe'].get('needs_adapter'):
+        if needs_adapter(window):
             result = create_adapter(adapters, address, window['key'])
         else:
             result = {'saved': enroll(adapters, address)}
