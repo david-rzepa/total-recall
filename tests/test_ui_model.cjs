@@ -46,3 +46,13 @@ assert.equal(model.rows[1].key,'second');
 assert.equal(model.rows[0].groupLabel,'1:1');
 assert.equal(model.rows[1].groupLabel,'1:2');
 assert.equal(model.rows[2].groupLabel,'–');
+
+model=ctx.build({saved:[saved],windows:[]});
+assert.equal(model.rows[0].closed,true);
+assert.deepEqual(Array.from(ctx.primaryAction(model.rows[0])), ['restore','--id','s1']);
+model=ctx.build({saved:[saved],windows:[window]});
+assert.equal(!!model.rows[0].closed,false);
+assert.deepEqual(Array.from(ctx.primaryAction(model.rows[0])), ['forget','--id','s1']);
+model=ctx.build({saved:[saved],windows:[],last_restore:[{id:'s1',error:'Launch failed'}]});
+assert.equal(model.rows[0].closed,true);
+assert.equal(model.rows[0].detail,'Launch failed');

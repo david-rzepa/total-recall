@@ -68,7 +68,9 @@ is **Super+Ctrl+1** when this widget is first in the right section.
 
 Click the persist marker to perform its action, right-click to skip, or
 double-click a row to jump. Markers are **✓** persisted, **–** not persisted,
-yellow **!** undecided, and red **×** error.
+yellow **!** undecided, red **?** closed but persisted, and red **×** error.
+For a closed entry, Enter/Space or clicking its marker restores it; Delete/n or
+right-clicking the marker deletes its saved entry.
 
 Closing a persisted window does not remove its startup registration. Unpersist
 or skip it to stop restoring it. Newly opened windows require a new decision.

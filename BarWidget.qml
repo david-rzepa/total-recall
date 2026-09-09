@@ -46,6 +46,7 @@ BarWidget {
     selectIndex(Math.max(0, model.rows.findIndex(r => r.uid === selectedKey)) + delta)
   }
   function jump(row) {
+    if (row && row.closed) { toggleRow(row); return }
     if (!row || !row.address || focusProcess.running) return
     failure = ""
     focusProcess.command = ["python3", "-B", script, "focus", "--address", row.address, "--key", row.key]
@@ -74,7 +75,13 @@ BarWidget {
   function togglePanel() { if (popupOpen) close(); else open() }
   function skipRow(row) {
     if (!row || stale || operation.running) return
-    if (!row.address) { if (row.saved) toggleRow(row); return }
+    if (!row.address) {
+      if (!row.saved) return
+      failure = ""
+      operation.command = ["python3", "-B", script, "forget", "--id", row.id]
+      operation.running = true
+      return
+    }
     failure = ""
     operation.command = ["python3", "-B", script, "skip", "--address", row.address, "--key", row.key]
     operation.running = true
@@ -82,9 +89,7 @@ BarWidget {
   function toggleRow(row) {
     if (!row || stale || operation.running || !(row.needsAdapter || row.saved || (row.eligible && row.address))) return
     failure = ""
-    operation.command = ["python3", "-B", script].concat(row.needsAdapter
-      ? ["create-adapter", "--address", row.address, "--key", row.key] : row.saved
-      ? ["forget", "--id", row.id] : ["persist", "--address", row.address])
+    operation.command = ["python3", "-B", script].concat(RecoveryModel.primaryAction(row))
     operation.running = true
   }
   IpcHandler {
@@ -172,7 +177,7 @@ BarWidget {
         else if (event.key === Qt.Key_PageUp) root.moveSelection(-8)
         else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.jump(root.selected)
         else if (event.key === Qt.Key_Space || event.text === "s") root.toggleRow(root.selected)
-        else if (event.text === "n") root.skipRow(root.selected)
+        else if (event.text === "n" || (event.key === Qt.Key_Delete && root.selected && root.selected.closed)) root.skipRow(root.selected)
         else event.accepted = false
       }
       Row {
@@ -255,8 +260,8 @@ BarWidget {
               height: parent.height
               verticalAlignment: Text.AlignVCenter
               width: Style.space(84)
-              text: entry.modelData.error ? "×" : entry.modelData.saved ? "✓" : entry.modelData.undecided ? "!" : "–"
-              color: entry.modelData.error ? "#ff5555" : entry.modelData.undecided ? "#f1c40f" : entry.modelData.saved || entry.modelData.eligible ? root.bar.foreground : Qt.alpha(root.bar.foreground, 0.35)
+              text: entry.modelData.closed ? "?" : entry.modelData.error ? "×" : entry.modelData.saved ? "✓" : entry.modelData.undecided ? "!" : "–"
+              color: entry.modelData.closed || entry.modelData.error ? "#ff5555" : entry.modelData.undecided ? "#f1c40f" : entry.modelData.saved || entry.modelData.eligible ? root.bar.foreground : Qt.alpha(root.bar.foreground, 0.35)
               font.family: root.mono
               font.pixelSize: Style.font.bodySmall
               MouseArea {
@@ -341,7 +346,7 @@ BarWidget {
       }
       Text {
         width: parent.width
-        text: "j/k ↑/↓ Tab select · Enter jump · Space " + (root.selected && root.selected.needsAdapter ? "create adapter" : root.selected && root.selected.saved ? "unpersist" : "persist") + " · n skip · Esc close"
+        text: root.selected && root.selected.closed ? "j/k ↑/↓ Tab select · Enter/Space restore · Delete/n delete entry · Esc close" : "j/k ↑/↓ Tab select · Enter jump · Space " + (root.selected && root.selected.needsAdapter ? "create adapter" : root.selected && root.selected.saved ? "unpersist" : "persist") + " · n skip · Esc close"
         wrapMode: Text.Wrap
         color: root.bar.foreground
         font.family: root.mono

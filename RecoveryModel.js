@@ -20,9 +20,9 @@ function build(state) {
   saved.forEach(function(r) {
     if (used[r.id]) return
     rows.push({workspace: String(r.placement.workspace), group: r.placement.group || null, address: '', key: '', uid: r.id, id: r.id,
-      saved: true, eligible: true, undecided: false, dirty: false, app: r.app || '', desktopId: r.recipe.state ? r.recipe.state.desktop_id || '' : '',
+      saved: true, closed: true, eligible: true, undecided: false, dirty: false, app: r.app || '', desktopId: r.recipe.state ? r.recipe.state.desktop_id || '' : '',
       error: failures[r.id] || (r.blocked ? 'Recovery state is unavailable.' : ''), label: r.recipe.label, title: r.title,
-      detail: failures[r.id] || r.recipe.detail,
+      detail: failures[r.id] || ('Closed · ' + r.recipe.detail),
       status: failures[r.id] ? 'Error' : r.blocked ? 'Changed' : 'Closed · saved'})
   })
   var workspaces = Array.from(new Set(rows.map(function(r) { return r.workspace })))
@@ -38,4 +38,11 @@ function build(state) {
     return {workspace: ws, rows: wsRows}
   })
   return {groups: groups, rows: [].concat.apply([], groups.map(function(g) { return g.rows })), dirty: rows.some(function(r) { return r.dirty }), error: rows.some(function(r) { return !!r.error }), count: rows.length}
+}
+
+function primaryAction(row) {
+  if (row.closed) return ["restore", "--id", row.id]
+  if (row.needsAdapter) return ["create-adapter", "--address", row.address, "--key", row.key]
+  if (row.saved) return ["forget", "--id", row.id]
+  return ["persist", "--address", row.address]
 }
