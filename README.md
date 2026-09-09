@@ -23,7 +23,8 @@ adapter** using your default OS agent.
 
 The bar icon is white when all windows are decided, yellow for new decisions,
 and red for errors. The table shows **Persist / Workspace / Group / Application /
-Window**. Group membership is displayed as `group:tab`, sorted in tab order.
+Window**. Group membership is displayed as `group:tab`, ordered by layout position (top to bottom, then left to right), with grouped
+tabs kept together in tab order. Closed entries use their last saved position.
 
 ## Install
 

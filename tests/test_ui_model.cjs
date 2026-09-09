@@ -56,3 +56,14 @@ assert.deepEqual(Array.from(ctx.primaryAction(model.rows[0])), ['forget','--id',
 model=ctx.build({saved:[saved],windows:[],last_restore:[{id:'s1',error:'Launch failed'}]});
 assert.equal(model.rows[0].closed,true);
 assert.equal(model.rows[0].detail,'Launch failed');
+
+const placed = (key,x,y,group) => ({...window,key,placement:{workspace:'1',at:[x,y],group}});
+model=ctx.build({windows:[
+ placed('bottom-left',0,500), placed('top-right',800,0),
+ placed('tab2',0,0,{id:'g',index:1}), placed('middle',400,250),
+ placed('tab1',0,0,{id:'g',index:0})
+]});
+assert.deepEqual(Array.from(model.rows,r=>r.key), ['tab1','tab2','top-right','middle','bottom-left']);
+model=ctx.build({windows:[placed('live',800,0)],saved:[{...saved,placement:{workspace:'1',at:[0,500]}}]});
+assert.equal(model.rows[0].key,'live');
+assert.equal(model.rows[1].closed,true);

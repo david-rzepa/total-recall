@@ -10,7 +10,7 @@ function build(state) {
     var changed = !!record && (record.blocked || w.status === 'changed')
     var needsAdapter = !!(w.recipe && w.recipe.needs_adapter)
     var undecided = !!w.recipe && !w.error && (!record || needsAdapter) && !(state.skipped || {})[w.key]
-    rows.push({workspace: String(w.placement.workspace), group: w.placement.group || null, address: w.address, key: w.key, uid: w.key,
+    rows.push({workspace: String(w.placement.workspace), at: w.placement.at || null, group: w.placement.group || null, address: w.address, key: w.key, uid: w.key,
       id: record ? record.id : '', saved: !!record && !needsAdapter, needsAdapter: needsAdapter, app: w.app || '', desktopId: w.recipe && w.recipe.state ? w.recipe.state.desktop_id || '' : '',
       eligible: !!w.recipe && !w.error && !needsAdapter, undecided: undecided, dirty: undecided,
       error: w.error || (changed ? 'Current recovery state is unavailable.' : ''), label: w.recipe ? w.recipe.label : w.app,
@@ -19,7 +19,7 @@ function build(state) {
   })
   saved.forEach(function(r) {
     if (used[r.id]) return
-    rows.push({workspace: String(r.placement.workspace), group: r.placement.group || null, address: '', key: '', uid: r.id, id: r.id,
+    rows.push({workspace: String(r.placement.workspace), at: r.placement.at || null, group: r.placement.group || null, address: '', key: '', uid: r.id, id: r.id,
       saved: true, closed: true, eligible: true, undecided: false, dirty: false, app: r.app || '', desktopId: r.recipe.state ? r.recipe.state.desktop_id || '' : '',
       error: failures[r.id] || (r.blocked ? 'Recovery state is unavailable.' : ''), label: r.recipe.label, title: r.title,
       detail: failures[r.id] || ('Closed · ' + r.recipe.detail),
@@ -29,11 +29,33 @@ function build(state) {
   workspaces.sort(function(a, b) { return /^-?\d+$/.test(a) && /^-?\d+$/.test(b) ? Number(a) - Number(b) : a.localeCompare(b) })
   var groups = workspaces.map(function(ws) {
     var wsRows = rows.filter(function(r) { return r.workspace === ws })
-    var ids = Array.from(new Set(wsRows.filter(r => r.group).map(r => r.group.id))).sort()
-    wsRows.forEach(function(r) { r.groupLabel = r.group ? String(ids.indexOf(r.group.id) + 1) + ":" + String(r.group.index + 1) : "–" })
-    wsRows.sort(function(a,b) {
-      if (a.group && b.group) return a.group.id.localeCompare(b.group.id) || a.group.index - b.group.index
-      return a.group ? -1 : b.group ? 1 : 0
+    var blocks = [], byGroup = {}
+    wsRows.forEach(function(r) {
+      var block = r.group ? byGroup[r.group.id] : null
+      if (!block) {
+        block = {rows: [], order: blocks.length}
+        blocks.push(block)
+        if (r.group) byGroup[r.group.id] = block
+      }
+      block.rows.push(r)
+    })
+    blocks.forEach(function(block) {
+      block.rows.sort(function(a,b) { return a.group && b.group ? a.group.index - b.group.index : 0 })
+      // Prefer live geometry when a group also has closed saved members.
+      var positioned = block.rows.filter(r => r.at && !r.closed)
+      if (!positioned.length) positioned = block.rows.filter(r => r.at)
+      positioned.sort(function(a,b) { return a.at[1] - b.at[1] || a.at[0] - b.at[0] })
+      block.at = positioned.length ? positioned[0].at : [Infinity, Infinity]
+    })
+    blocks.sort(function(a,b) { return a.at[1] - b.at[1] || a.at[0] - b.at[0] || a.order - b.order })
+    var groupNumber = 0
+    wsRows = []
+    blocks.forEach(function(block) {
+      if (block.rows[0].group) groupNumber++
+      block.rows.forEach(function(r) {
+        r.groupLabel = r.group ? String(groupNumber) + ":" + String(r.group.index + 1) : "–"
+        wsRows.push(r)
+      })
     })
     return {workspace: ws, rows: wsRows}
   })
