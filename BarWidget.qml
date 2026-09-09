@@ -113,7 +113,7 @@ BarWidget {
     if (!row || stale || operation.running || !(row.needsAdapter || row.saved || (row.eligible && row.address))) return
     failure = ""
     operation.command = ["python3", "-B", script].concat(RecoveryModel.primaryAction(row))
-    if (row.closed) close()
+    if (row.closed || row.needsAdapter) close()
     operation.running = true
   }
   IpcHandler {
