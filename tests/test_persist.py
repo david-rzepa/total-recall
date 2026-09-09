@@ -12,6 +12,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import persist
 
 class RecoveryTests(unittest.TestCase):
+    def test_manual_restore_focuses_new_and_reused_windows(self):
+        for outcome in ('restored', 'already-running'):
+            result = {'result': outcome, 'address': '0x1'}
+            with patch.object(persist, 'restore', return_value=result), patch.object(persist, 'snapshot', return_value={'windows':[{'address':'0x1','key':'fresh'}]}), patch.object(persist, 'focus_window') as focus:
+                self.assertEqual(persist.restore_and_focus({}, 'one'), result)
+                focus.assert_called_once_with('0x1', 'fresh')
+
     def test_shell_restore_follows_account_changes_not_environment(self):
         adapter = self.adapters['terminal']
         state = {'cwd': '/tmp', 'shell': 'default'}

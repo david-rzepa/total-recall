@@ -533,6 +533,15 @@ def restore(adapters, rid):
             write(STATE / 'saved.json', db)
         return dict(result='restored', address=existing['address'])
 
+def restore_and_focus(adapters, rid):
+    result = restore(adapters, rid)
+    status = snapshot(adapters)
+    window = next((w for w in status['windows'] if w['address'] == result['address']), None)
+    if not window:
+        raise ValueError('Restored window closed before it could be focused')
+    focus_window(window['address'], window['key'])
+    return result
+
 def main():
     global STOP
     os.umask(0o077)
@@ -606,7 +615,7 @@ def main():
     else:
         if not args.id:
             parser.error('--id is required; inspect preview first')
-        result = restore(adapters, args.id)
+        result = restore_and_focus(adapters, args.id)
     print(json.dumps(result))
 
 if __name__ == '__main__':

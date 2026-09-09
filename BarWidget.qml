@@ -90,6 +90,7 @@ BarWidget {
     if (!row || stale || operation.running || !(row.needsAdapter || row.saved || (row.eligible && row.address))) return
     failure = ""
     operation.command = ["python3", "-B", script].concat(RecoveryModel.primaryAction(row))
+    if (row.closed) close()
     operation.running = true
   }
   IpcHandler {
@@ -131,6 +132,7 @@ BarWidget {
     }
     onExited: function(code) {
       if (code !== 0 && !root.failure) root.failure = "Could not update saved recovery."
+      if (code !== 0) root.open()
       if (!poll.running) poll.running = true
     }
   }
