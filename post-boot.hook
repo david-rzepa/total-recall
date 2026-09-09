@@ -1,0 +1,3 @@
+#!/bin/bash
+systemctl --user import-environment HYPRLAND_INSTANCE_SIGNATURE WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR PATH
+systemctl --user start omarchy-persist.service

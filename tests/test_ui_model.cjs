@@ -1,0 +1,48 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const ctx = vm.createContext({});
+vm.runInContext(fs.readFileSync('RecoveryModel.js','utf8'), ctx);
+const recipe = {identity:'app:one',label:'One',detail:'Native restore'};
+const saved = {id:'s1',key:'k1',recipe,placement:{workspace:'10'},title:'Old'};
+const window = {key:'k1',address:'0x1',recipe,placement:{workspace:'2'},title:'One',status:'saved'};
+let model=ctx.build({saved:[saved],windows:[window]});
+assert.equal(model.count,1); assert.equal(model.dirty,false); assert.equal(model.groups[0].workspace,'2');
+assert.equal(model.groups[0].rows[0].id,'s1');
+model=ctx.build({saved:[saved],windows:[]});
+assert.equal(model.groups[0].rows[0].status,'Closed · saved');
+model=ctx.build({saved:[saved],windows:[{...window,status:'changed'}]});
+assert.equal(model.dirty,false); assert.equal(model.error,true); assert.equal(model.groups[0].rows[0].saved,true);
+model=ctx.build({saved:[],windows:[{...window,recipe:null,status:'unsupported'}]});
+assert.equal(model.dirty,false); assert.equal(model.groups[0].rows[0].eligible,false);
+model=ctx.build({saved:[],windows:[window]}); assert.equal(model.dirty,true);
+model=ctx.build({saved:[saved],windows:[],last_restore:[{id:'s1',error:'Failed'}]}); assert.equal(model.error,true);
+model=ctx.build({saved:[saved],windows:[window],last_restore:[{id:'s1',error:'Failed'}]}); assert.equal(model.error,false);
+model=ctx.build({saved:[saved],windows:[{...window,key:'k2',recipe:{...recipe,identity:'other'}}]});
+assert.equal(model.count,2); assert.equal(model.groups[0].workspace,'2');assert.equal(model.groups[1].workspace,'10');
+console.log('PASS: grouping, deduplication, closed records, dirty/error status and toggle state');
+
+model=ctx.build({saved:[],windows:[window],skipped:{k1:true}});
+assert.equal(model.dirty,false);assert.equal(model.groups[0].rows[0].undecided,false);
+model=ctx.build({saved:[],windows:[{...window,key:'new-window'}],skipped:{k1:true}});
+assert.equal(model.dirty,true);assert.equal(model.groups[0].rows[0].undecided,true);
+
+model=ctx.build({saved:[saved],windows:[{...window,recipe:{...recipe,needs_adapter:true}}]});
+assert.equal(model.rows[0].needsAdapter,true);
+assert.equal(model.rows[0].saved,false);
+assert.equal(model.rows[0].eligible,false);
+assert.equal(model.rows[0].undecided,true);
+model=ctx.build({saved:[],windows:[{...window,recipe:{...recipe,needs_adapter:true}}],skipped:{k1:true}});
+assert.equal(model.dirty,false);
+assert.equal(model.rows[0].needsAdapter,true);
+
+model=ctx.build({windows:[
+ {...window,key:'second',placement:{workspace:'1',group:{id:'a',index:1}}},
+ {...window,key:'alone',placement:{workspace:'1'}},
+ {...window,key:'first',placement:{workspace:'1',group:{id:'a',index:0}}}
+]});
+assert.equal(model.rows[0].key,'first');
+assert.equal(model.rows[1].key,'second');
+assert.equal(model.rows[0].groupLabel,'1:1');
+assert.equal(model.rows[1].groupLabel,'1:2');
+assert.equal(model.rows[2].groupLabel,'–');

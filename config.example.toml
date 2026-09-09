@@ -1,0 +1,25 @@
+# Total Recall — changes take effect automatically within two seconds.
+# Application recovery logic lives in adapters/*.py.
+
+[adapters.desktop-app]
+enabled = true
+
+[adapters.herdr]
+enabled = true
+
+[adapters.codex]
+enabled = true
+
+[adapters.hunk]
+enabled = true
+
+[adapters.gh-dash]
+enabled = true
+
+# Allows restoring an idle Foot shell, never replaying unknown commands.
+[adapters.terminal]
+enabled = true
+
+# Interactive agent used by Create adapter; the draft prompt is appended.
+[agent]
+command = ["omarchy", "agent", "prompt", "--inline"]

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "dave.persist",
+  "name": "Total Recall",
+  "version": "0.2.0",
+  "author": "Dave",
+  "description": "Adapter-based recovery with explicit enrollment and live state discovery",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "BarWidget.qml"},
+  "barWidget": {"displayName": "Total Recall", "category": "Compositor", "allowMultiple": false}
+}
